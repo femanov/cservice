@@ -2,14 +2,14 @@ from setuptools import setup, find_packages
 
 setup(
     name='cservice',
-    version='0.1',
+    version='0.2',
     author='Fedor Emanov',
     description='helper-module to make creation of control-systems daemons easier',
-    license='',
+    license='gpl-3.0',
     packages=find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
     ],
     python_requires='>=3.0',
-    requires=['python-daemon'],
+    install_requires=['pid', 'python-daemon-3K'],
 )
