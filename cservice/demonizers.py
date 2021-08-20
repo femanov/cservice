@@ -22,11 +22,18 @@ class Service:
         if redef_print:
             builtins.print = self.log_str
 
-        with self.dcontext:
-            self.log_str('starting service: ' + self.name)
+        # may be argparse later
+        if '-not-daemonize' in sys.argv:
+            print('runnind without forking demonization')
             self.pre_run()
             self.main()
             self.run_main_loop()
+        else:
+            with self.dcontext:
+                self.log_str('starting service: ' + self.name)
+                self.pre_run()
+                self.main()
+                self.run_main_loop()
 
     def exit_proc(self, signum, frame):
         self.log_str('signal recieved: %d, %s' % (signum, frame))
