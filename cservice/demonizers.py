@@ -20,7 +20,7 @@ class Service:
 
         self.f_log = open('/var/tmp/' + self.name + '.log', 'ab', 0)
         self.f_err = open('/var/tmp/' + self.name + '.err', 'ab', 0)
-        self.dcontext = daemon.DaemonContext(pidfile=pid.PidFile(self.name, '/run',), stdout=self.f_log, stderr=self.f_err)
+        self.dcontext = daemon.DaemonContext(pidfile=pid.PidFile(self.name, '/var/tmp',), stdout=self.f_log, stderr=self.f_err)
 
         self.dcontext.signal_map = {
             signal.SIGTERM: self.exit_proc,
