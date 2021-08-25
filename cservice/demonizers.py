@@ -9,9 +9,18 @@ import builtins
 class Service:
     def __init__(self, name, **kwargs):
         self.name = name
+
+        # may be argparse later
+        if '-not-daemonize' in sys.argv:
+            print('runnind without forking demonization')
+            self.pre_run()
+            self.main()
+            self.run_main_loop()
+            sys.exit(0)
+
         self.f_log = open('/var/tmp/' + self.name + '.log', 'ab', 0)
         self.f_err = open('/var/tmp/' + self.name + '.err', 'ab', 0)
-        self.dcontext = daemon.DaemonContext(pidfile=pid.PidFile(self.name, '/var/tmp',), stdout=self.f_log, stderr=self.f_err)
+        self.dcontext = daemon.DaemonContext(pidfile=pid.PidFile(self.name, '/run',), stdout=self.f_log, stderr=self.f_err)
 
         self.dcontext.signal_map = {
             signal.SIGTERM: self.exit_proc,
@@ -22,18 +31,11 @@ class Service:
         if redef_print:
             builtins.print = self.log_str
 
-        # may be argparse later
-        if '-not-daemonize' in sys.argv:
-            print('runnind without forking demonization')
+        with self.dcontext:
+            self.log_str('starting service: ' + self.name)
             self.pre_run()
             self.main()
             self.run_main_loop()
-        else:
-            with self.dcontext:
-                self.log_str('starting service: ' + self.name)
-                self.pre_run()
-                self.main()
-                self.run_main_loop()
 
     def exit_proc(self, signum, frame):
         self.log_str('signal recieved: %d, %s' % (signum, frame))
