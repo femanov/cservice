@@ -1,5 +1,5 @@
 import daemon
-import signalg
+import signal
 import sys
 import pid
 from datetime import datetime
