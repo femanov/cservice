@@ -4,14 +4,13 @@ import sys
 import pid
 from datetime import datetime
 import builtins
-from contextlib import redirect_stdout,redirect_stderr
 from systemd.daemon import notify
 
 
 class Service:
     def __init__(self, name, **kwargs):
         self.name = name
-        # argsparse?
+        # may be argsparse later?
         self.systemd = True if '-systemd' in sys.argv else False
         self.not_daemonize = True if '-not-daemonize' in sys.argv else False
 
@@ -29,10 +28,10 @@ class Service:
                                              stdout=self.f_log,
                                              stderr=self.f_err)
         self.dcontext.signal_map = {
-            signal.SIGTERM: self.exit_proc,
+            signal.SIGTERM: self.exit_proc, #
+            signal.SIGINT: self.exit_proc,  # Ctrl + c reaction
         }
 
-        redef_print = kwargs.get('redef_print', False)
         self.print = builtins.print
         builtins.print = self.log_str
 
@@ -113,9 +112,30 @@ class CXService(Service):
     def run_main_loop(self):
         global cda
         import pycx4.pycda as cda
+
+        import socket
+
+        # Create a socket pair for waking up from cda's select()
+        self.wsock, self.rsock = socket.socketpair(type=socket.SOCK_DGRAM)
+        self.wsock.setblocking(False) # required by signal library
+        self.old_fd = signal.set_wakeup_fd(self.wsock.fileno())
+        # Create Fd event fpr CX scheduler main loop
+        self.wakeup_ev = cda.FdEvent(self.rsock)
+        # call to self.wakeup_proc will return execution to python interpriter
+        # on tests after that python's signal processing called first, then
+        # self.wakeup_proc
+        self.wakeup_ev.ready.connect(self.wakeup_proc)
+        # may be change to dummy handler lake that:
+        #self.wakeup_ev.ready.connect(lambda : None)
+        # since really not required to processsignals in wakeup proc
+
         cda.main_loop()
 
     def quit_main_loop(self):
         global cda
         import pycx4.pycda as cda
         cda.break_()
+
+    def wakeup_proc(self, ev):
+        data = self.rsock.recv(1)
+        print('wake up with:', data)
