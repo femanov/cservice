@@ -1,5 +1,6 @@
 import daemon
 import signal
+import socket
 import sys
 import pid
 from datetime import datetime
@@ -28,7 +29,7 @@ class Service:
                                              stdout=self.f_log,
                                              stderr=self.f_err)
         self.dcontext.signal_map = {
-            signal.SIGTERM: self.exit_proc, #
+            signal.SIGTERM: self.exit_proc,  #
             signal.SIGINT: self.exit_proc,  # Ctrl + c reaction
         }
 
@@ -39,13 +40,15 @@ class Service:
             print('starting service: ' + self.name)
             self.pre_run()
             self.main()
-            notify('READY=1')
+            if self.systemd:
+                notify('READY=1')
             print('data loaded, going to main loop')
             self.run_main_loop()
 
     def exit_proc(self, signum, frame):
         self.log_str('signal recieved: %d, %s' % (signum, frame))
-        notify('STOPPING=1')
+        if self.systemd:
+            notify('STOPPING=1')
         self.clean_proc()
         self.quit_main_loop()
 
@@ -112,8 +115,6 @@ class CXService(Service):
     def run_main_loop(self):
         global cda
         import pycx4.pycda as cda
-
-        import socket
 
         # Create a socket pair for waking up from cda's select()
         self.wsock, self.rsock = socket.socketpair(type=socket.SOCK_DGRAM)

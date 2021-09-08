@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='cservice',
-    version='0.8',
+    version='0.9',
     author='Fedor Emanov',
     description='helper-module to make creation of control-systems daemons easier',
     license='gpl-3.0',
