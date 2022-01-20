@@ -118,7 +118,7 @@ class CXService(Service):
 
         # Create a socket pair for waking up from cda's select()
         self.wsock, self.rsock = socket.socketpair(type=socket.SOCK_DGRAM)
-        self.wsock.setblocking(False) # required by signal library
+        self.wsock.setblocking(False)  # required by signal library
         self.old_fd = signal.set_wakeup_fd(self.wsock.fileno())
         # Create Fd event fpr CX scheduler main loop
         self.wakeup_ev = cda.FdEvent(self.rsock)
