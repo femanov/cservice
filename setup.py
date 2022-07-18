@@ -11,5 +11,5 @@ setup(
         "Programming Language :: Python :: 3",
     ],
     python_requires='>=3.0',
-    install_requires=['pid', 'python-daemon-3K'],
+    install_requires=['pid', 'python-daemon'],
 )
