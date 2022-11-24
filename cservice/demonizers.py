@@ -13,13 +13,15 @@ class Service:
         self.name = name
         # may be argsparse later?
         self.systemd = True if '-systemd' in sys.argv else False
-        self.not_daemonize = True if '-not-daemonize' in sys.argv else False
+
+        self.not_daemonize = True if '-not-daemonize' in sys.argv else kwargs.get('not_daemonize', False)
 
         self.detach_process = False if self.systemd or self.not_daemonize else True
 
         if self.not_daemonize:
             self.f_log = sys.stdout
             self.f_err = sys.stderr
+            print('running in console mode')
         else:
             self.f_log = open('/var/tmp/' + self.name + '.log', 'ab', 0)
             self.f_err = open('/var/tmp/' + self.name + '.err', 'ab', 0)
@@ -46,7 +48,8 @@ class Service:
             self.run_main_loop()
 
     def exit_proc(self, signum, frame):
-        self.log_str('signal recieved: %d, %s' % (signum, frame))
+        #self.log_str('signal recieved: %d, %s' % (signum, frame))
+        self.log_str('Stopping service')
         if self.systemd:
             notify('STOPPING=1')
         self.clean_proc()
@@ -139,4 +142,3 @@ class CXService(Service):
 
     def wakeup_proc(self, ev):
         data = self.rsock.recv(1)
-        print('wake up with:', data)
