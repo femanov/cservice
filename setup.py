@@ -2,10 +2,12 @@ from setuptools import setup, find_packages
 
 setup(
     name='cservice',
-    version='0.9',
+    version='0.10',
     author='Fedor Emanov',
+    author_email='femanov@gmail.com',
     description='helper-module to make creation of control-systems daemons easier',
     license='gpl-3.0',
+    url='https://github.com/femanov/cservice',
     packages=find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
