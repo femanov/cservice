@@ -6,7 +6,7 @@ setup(
     author='Fedor Emanov',
     author_email='femanov@gmail.com',
     description='helper-module to make creation of control-systems daemons easier',
-    license='gpl-3.0',
+    license='GPL-3.0',
     url='https://github.com/femanov/cservice',
     packages=find_packages(),
     classifiers=[
