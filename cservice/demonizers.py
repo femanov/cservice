@@ -39,7 +39,7 @@ class Service:
         builtins.print = self.log_str
 
         with self.dcontext:
-            print('starting service: ' + self.name)
+            print(f'starting service: {self.name}')
             self.pre_run()
             self.main()
             if self.systemd:
@@ -48,7 +48,6 @@ class Service:
             self.run_main_loop()
 
     def exit_proc(self, signum, frame):
-        #self.log_str('signal recieved: %d, %s' % (signum, frame))
         self.log_str('Stopping service')
         if self.systemd:
             notify('STOPPING=1')
@@ -132,6 +131,17 @@ class CXService(Service):
         # may be change to dummy handler lake that:
         #self.wakeup_ev.ready.connect(lambda : None)
         # since really not required to processsignals in wakeup proc
+
+        # lord interactions
+        print('creating Lord interaction interface')
+        from .daemon_ctrl import DaemonCtl
+        lord_srv = True if self.name == "DaemonLord" else False
+        self.lord_ctrl = DaemonCtl(ctrl_dev='lord', commands=['info', 'die'], srv=lord_srv)
+
+        if not lord_srv:
+            self.lord_ctrl.die.connect(self.quit_main_loop)
+        else:
+            print('starting as Daemon Lord')
 
         cda.main_loop()
 
