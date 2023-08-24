@@ -6,6 +6,7 @@ import pid
 from datetime import datetime
 import builtins
 from systemd.daemon import notify
+#import netifaces as ni
 
 
 class Service:
@@ -13,9 +14,7 @@ class Service:
         self.name = name
         # may be argsparse later?
         self.systemd = True if '-systemd' in sys.argv else False
-
         self.not_daemonize = True if '-not-daemonize' in sys.argv else kwargs.get('not_daemonize', False)
-
         self.detach_process = False if self.systemd or self.not_daemonize else True
 
         if self.not_daemonize:
@@ -48,11 +47,7 @@ class Service:
             self.run_main_loop()
 
     def exit_proc(self, signum, frame):
-        self.log_str('Stopping service')
-        if self.systemd:
-            notify('STOPPING=1')
-        self.clean_proc()
-        self.quit_main_loop()
+        self.quit()
 
     def log_str(self, *args):
         self.print(datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"), ': ', *args, flush=True)
@@ -64,7 +59,6 @@ class Service:
         pass
 
     def pre_run(self):
-        #function to initialize context here
         pass
 
     def main(self):
@@ -72,6 +66,13 @@ class Service:
 
     def clean_proc(self):
         pass
+
+    def quit(self):
+        self.log_str('Stopping service')
+        if self.systemd:
+            notify('STOPPING=1')
+        self.clean_proc()
+        self.quit_main_loop()
 
 
 class QtService(Service):
@@ -114,7 +115,7 @@ class CothreadQtService(Service):
 
 
 class CXService(Service):
-    def run_main_loop(self):
+    def pre_run(self):
         global cda
         import pycx4.pycda as cda
 
@@ -122,26 +123,26 @@ class CXService(Service):
         self.wsock, self.rsock = socket.socketpair(type=socket.SOCK_DGRAM)
         self.wsock.setblocking(False)  # required by signal library
         self.old_fd = signal.set_wakeup_fd(self.wsock.fileno())
-        # Create Fd event fpr CX scheduler main loop
-        self.wakeup_ev = cda.FdEvent(self.rsock)
+        self.wakeup_ev = cda.FdEvent(self.rsock) # Create Fd event fpr CX scheduler main loop
         # call to self.wakeup_proc will return execution to python interpriter
-        # on tests after that python's signal processing called first, then
-        # self.wakeup_proc
+        # on tests after that python's signal processing called first, then self.wakeup_proc
         self.wakeup_ev.ready.connect(self.wakeup_proc)
-        # may be change to dummy handler lake that:
-        #self.wakeup_ev.ready.connect(lambda : None)
-        # since really not required to processsignals in wakeup proc
 
         # lord interactions
-        print('creating Lord interaction interface')
         from .daemon_ctrl import DaemonCtl
         lord_srv = True if self.name == "DaemonLord" else False
-        self.lord_ctrl = DaemonCtl(ctrl_dev='lord', commands=['info', 'die'], srv=lord_srv)
 
+        self.lord_ctrl = DaemonCtl('lord', commands=['info', 'die'],
+                                   srv=lord_srv, name=self.name)
         if not lord_srv:
-            self.lord_ctrl.die.connect(self.quit_main_loop)
+            print("starting as Worker Daemon")
+            self.lord_ctrl.die.connect(self.die_proc)
         else:
             print('starting as Daemon Lord')
+
+    def run_main_loop(self):
+        global cda
+        import pycx4.pycda as cda
 
         cda.main_loop()
 
@@ -152,3 +153,7 @@ class CXService(Service):
 
     def wakeup_proc(self, ev):
         data = self.rsock.recv(1)
+
+    def die_proc(self, params):
+        print('Going down by Daemon Lord request')
+        self.quit_main_loop()
